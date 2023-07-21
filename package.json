@@ -1,0 +1,22 @@
+{
+  "name": "wardenclyffe-js",
+  "version": "0.0.1",
+  "description": "Use pub/sub network to facilate events and rpc across applications.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neoatlantis/wardenclyffe-js.git"
+  },
+  "author": "NeoAtlantis",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/neoatlantis/wardenclyffe-js/issues"
+  },
+  "homepage": "https://github.com/neoatlantis/wardenclyffe-js#readme"
+}
