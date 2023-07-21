@@ -3,11 +3,9 @@
   "version": "0.0.1",
   "description": "Use pub/sub network to facilate events and rpc across applications.",
   "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "webpack",
+    "dist": "webpack --production"
   },
   "repository": {
     "type": "git",
@@ -18,5 +16,16 @@
   "bugs": {
     "url": "https://github.com/neoatlantis/wardenclyffe-js/issues"
   },
-  "homepage": "https://github.com/neoatlantis/wardenclyffe-js#readme"
+  "homepage": "https://github.com/neoatlantis/wardenclyffe-js#readme",
+  "dependencies": {
+    "events": "^3.3.0",
+    "lodash": "^4.17.21",
+    "mqtt": "^4.3.7",
+    "webpack": "^5.88.2"
+  },
+  "devDependencies": {
+    "ifdef-loader": "^2.3.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
+  }
 }
