@@ -21,6 +21,8 @@
     "events": "^3.3.0",
     "lodash": "^4.17.21",
     "mqtt": "^4.3.7",
+    "msgpackr": "^1.9.5",
+    "uuid": "^9.0.0",
     "webpack": "^5.88.2"
   },
   "devDependencies": {

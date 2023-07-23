@@ -5,3 +5,7 @@ const wardenclyffe = new Wardenclyffe({
 });
 
 wardenclyffe.connect();
+
+wardenclyffe.rpc.register("echo", (e)=>{
+    return e;
+});

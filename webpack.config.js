@@ -59,6 +59,7 @@ module.exports = (env)=>{
                     "lodash",
                     "mqtt",
                     "events",
+                    "msgpackr",
                 ],
             })
         ],

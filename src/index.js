@@ -2,6 +2,9 @@ import _ from "lodash";
 import mqtt from "mqtt";
 import path from "path";
 
+import WardenclyffeRPCDispatch from "./rpc";
+import WardenclyffeEventingDispatch from "./eventing";
+
 
 const symbolEventsBound = Symbol();
 
@@ -10,9 +13,10 @@ const symbolEventsBound = Symbol();
 class Wardenclyffe {
 
     #client;
-    
     #mqtt_url;
-    #channel_prefixes;
+
+    #eventing;
+    #rpc;
 
     constructor(options){
         const namespace = _.get(options, "namespace", "default");
@@ -20,25 +24,22 @@ class Wardenclyffe {
             throw Error("Invalid namespace.");
         }
 
-        this.#channel_prefixes = {
-            /* req: Incoming requests from other instances to us. */
-            "req": "req/" + namespace + "/",
-
-            /* res: Outgoing responses from this instance. */
-            "res": "res/" + namespace + "/",
-
-            /* pub: Incoming deliveries of events from other instances. */
-            "pub": "pub/" + namespace + "/",
-
-            /* sub: Outgoing events from this instance. */
-            "sub": "sub/" + namespace + "/",
-        };
-
         this.#mqtt_url = _.get(options, "url");
+
+
+        this.#rpc = new WardenclyffeRPCDispatch({
+            namespace,
+        });
+
+        this.#eventing = new WardenclyffeEventingDispatch({
+            namespace,
+        });
     }
 
     connect(){
-        this.#client = mqtt.connect(this.#mqtt_url);
+        this.#client = mqtt.connect(this.#mqtt_url, {
+            protocolVersion: 5,
+        });
 
         this.#client.on("connect", ()=>{
             console.log("MQTT connnected.");
@@ -46,28 +47,25 @@ class Wardenclyffe {
         });
     }
 
-    #topicBuilder(type, topic){
-        if(this.#channel_prefixes[type] === undefined){
-            throw Error("Invalid type.");
-        }
-        topic = topic.replace(/\./g, "/");
-        return path.posix.join(this.#channel_prefixes[type], topic);
-    }
-
     #bindEvents(client){
         // for a given instance of client, don't bind events repeatly
         if(_.get(client, symbolEventsBound) === true) return;
 
-        client.subscribe(this.#topicBuilder('req', '#'), { qos: 2 });
-        client.subscribe(this.#topicBuilder('pub', '#'), { qos: 2 });
+        this.#rpc.bindEventsToClient(client);
+        this.#eventing.bindEventsToClient(client);
 
-        client.on("message", console.log);
+        client.on("message", (a,b,c)=>this.#onMessage(a,b,c));
         client[symbolEventsBound] = true;
     }
 
     #onMessage(topic, messageBuffer, packet){
-        
+        if(false === this.#rpc.onMessage(topic, messageBuffer, packet)){
+            this.#eventing.onMessage(topic, messageBuffer, packet);
+        }
     }
+
+    get rpc(){ return this.#rpc }
+    get eventing(){ return this.#eventing }
 
 }
 
