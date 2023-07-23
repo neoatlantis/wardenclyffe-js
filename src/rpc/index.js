@@ -46,9 +46,6 @@ class WardenclyffeRPCDispatch {
     }
 
     onMessage(topic, messageBuffer, messagePacket){
-        console.log("New request: ", topic);
-        console.log(messagePacket);
-
         if(_.startsWith(topic, this.#channel_prefix_requests)){
             this.#onRequest(topic, messageBuffer, messagePacket);
         } else if(_.startsWith(topic, this.#channel_prefix_responses)){
@@ -65,10 +62,7 @@ class WardenclyffeRPCDispatch {
         
         const handler = this.#registrations.get(topic);
         const responseTopic = _.get(messagePacket, "properties.responseTopic");
-        if(
-            !responseTopic || 
-            !_.startsWith(responseTopic, GENERAL_RESPONSES_PREFIX)
-        ){
+        if(!_.startsWith(responseTopic, GENERAL_RESPONSES_PREFIX)){
             // not worthy processing.
             return;
         }
@@ -112,7 +106,11 @@ class WardenclyffeRPCDispatch {
             return pendingResult.reject(Error("Deserialization error."));
         }
 
-        return pendingResult.resolve(result);
+        if(is_error){
+            return pendingResult.reject(result);
+        } else {
+            return pendingResult.resolve(result);
+        }
     }
 
     #getFullFunctionTopic(functionName, base){

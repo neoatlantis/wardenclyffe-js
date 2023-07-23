@@ -5,10 +5,6 @@ const wardenclyffe = new Wardenclyffe({
 });
 
 
-wardenclyffe.rpc.register("add", (e)=>{
-    return e.a+e.b;
-});
-
 
 async function main(){
     await wardenclyffe.connect();
@@ -17,8 +13,7 @@ async function main(){
     setInterval(async ()=>{
         try{
             let ret = await wardenclyffe.rpc.call(
-                "testclient", "test", { hello: 'world'},
-                { timeout: 30000 }
+                "rpcserver", "add", { a: 1, b: 2 }
             );
             console.log(ret);
         } catch(e){
