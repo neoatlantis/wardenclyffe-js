@@ -1,4 +1,5 @@
 import _ from "lodash";
+import events from "events";
 import mqtt from "mqtt";
 import path from "path";
 
@@ -10,7 +11,7 @@ const symbolEventsBound = Symbol();
 
 
 
-class Wardenclyffe {
+class Wardenclyffe extends events.EventEmitter {
 
     #client;
     #mqtt_url;
@@ -19,6 +20,8 @@ class Wardenclyffe {
     #rpc;
 
     constructor(options){
+        super();
+
         const namespace = _.get(options, "namespace", "default");
         if(!_.isString(namespace || !/^[a-z]+$/.test(namespace))){
             throw Error("Invalid namespace.");
@@ -41,10 +44,14 @@ class Wardenclyffe {
             protocolVersion: 5,
         });
 
-        this.#client.on("connect", ()=>{
-            console.log("MQTT connnected.");
-            this.#bindEvents(this.#client);
-        });
+        return new Promise((resolve, _)=>{
+            this.#client.on("connect", ()=>{
+                console.log("MQTT connnected.");
+                this.emit("connect");
+                this.#bindEvents(this.#client);
+                resolve();
+            });    
+        });        
     }
 
     #bindEvents(client){

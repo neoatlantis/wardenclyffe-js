@@ -2,6 +2,8 @@ import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 
+import PendingResult from "./PendingResult";
+
 
 const GENERAL_RESPONSES_PREFIX = "/wardenclyffe/res/";
 const GENERAL_REQUESTS_PREFIX  = "/wardenclyffe/req/";
@@ -15,7 +17,7 @@ class WardenclyffeRPCDispatch {
     #channel_prefix_requests;
 
     #registrations; // new Map(): function name as topic (full string)->handler
-    #pendingPromises; // new Map(): topic(full string)->[resolve, reject]
+    #pendingPromises; // new Map(): topic(full string)->PendingResult()
 
     constructor(options){
         const namespace = _.get(options, "namespace");
@@ -98,6 +100,19 @@ class WardenclyffeRPCDispatch {
 
     #onResponse(topic, messageBuffer, messagePacket){
         if(!this.#pendingPromises.has(topic)) return;
+        
+        const pendingResult = this.#pendingPromises.get(topic);
+        const is_error = 
+            _.get(messagePacket, "properties.userProperties.is_error");
+
+        let result = null;
+        try{
+            result = JSON.parse(messageBuffer.toString());
+        } catch(e){
+            return pendingResult.reject(Error("Deserialization error."));
+        }
+
+        return pendingResult.resolve(result);
     }
 
     #getFullFunctionTopic(functionName, base){
@@ -132,7 +147,6 @@ class WardenclyffeRPCDispatch {
     }
 
     async call(namespace, functionName, parameter, options){
-        const timeout = _.get(options, "timeout", 5000);
 
         const remoteFullFunctionTopic = this.#getFullFunctionTopic(
             functionName,
@@ -146,11 +160,11 @@ class WardenclyffeRPCDispatch {
 
         // Records callback function and sets timeout.
         let retPromise = new Promise((resolve, reject)=>{
-            this.#pendingPromises.set(responseTopic, [resolve, reject]);
-            setTimeout(()=>{
-                reject("Timeout.");
+            let pendingResult = new PendingResult(resolve, reject);
+            this.#pendingPromises.set(responseTopic, pendingResult, options);
+            pendingResult.once("finished", ()=>{
                 this.#pendingPromises.delete(responseTopic);
-            }, timeout);
+            });
         });
         
         // Publish call, but if failed, reject above promise immediately.
@@ -172,8 +186,7 @@ class WardenclyffeRPCDispatch {
                 );
             });
         } catch(e){
-            let rejectFunc = this.#pendingPromises.get(responseTopic)[1];
-            rejectFunc(e);
+            this.#pendingPromises.get(responseTopic).reject(e);
             this.#pendingPromises.delete(responseTopic);
         }
 
