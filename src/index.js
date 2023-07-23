@@ -2,6 +2,7 @@ import _ from "lodash";
 import events from "events";
 import mqtt from "mqtt";
 import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 import WardenclyffeRPCDispatch from "./rpc";
 import WardenclyffeEventingDispatch from "./eventing";
@@ -13,6 +14,7 @@ const symbolEventsBound = Symbol();
 
 class Wardenclyffe extends events.EventEmitter {
 
+    #clientId;
     #client;
     #mqtt_url;
 
@@ -37,12 +39,24 @@ class Wardenclyffe extends events.EventEmitter {
         this.#eventing = new WardenclyffeEventingDispatch({
             namespace,
         });
+
+        this.#clientId = "Wardenclyffe-" + uuidv4();
     }
 
     connect(){
         this.#client = mqtt.connect(this.#mqtt_url, {
             protocolVersion: 5,
-            keepalive: 10,
+            keepalive: 5,
+            clean: false, // set to false to receive QoS 1&2 while offline
+            clientId: this.#clientId,
+        });
+
+        this.#client.on("reconnect", ()=>{
+            console.log("Reconnecting...");
+        });
+
+        this.#client.on("offline", ()=>{
+            console.log("Client offline.");
         });
 
         return new Promise((resolve, _)=>{
@@ -51,7 +65,7 @@ class Wardenclyffe extends events.EventEmitter {
                 this.emit("connect");
                 this.#bindEvents(this.#client);
                 resolve();
-            });    
+            });
         });        
     }
 
