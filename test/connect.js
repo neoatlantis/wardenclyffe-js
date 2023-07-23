@@ -10,15 +10,20 @@ async function main(){
     await wardenclyffe.connect();
 
 
-    setInterval(async ()=>{
+    while(true){
         try{
+            console.log("- Sending request...");
             let ret = await wardenclyffe.rpc.call(
                 "rpcserver", "add", { a: 1, b: 2 }
             );
-            console.log(ret);
+            console.log("- Response got with:");
+            console.log("....ok", ret);
         } catch(e){
-            console.log(e);
+            console.log("....err", e);
         }
-    }, 5000);
+    
+        await new Promise((resolve)=>setTimeout(resolve, 2000));
+    }
+
 }
 main();

@@ -96,8 +96,10 @@ class WardenclyffeRPCDispatch {
         if(!this.#pendingPromises.has(topic)) return;
         
         const pendingResult = this.#pendingPromises.get(topic);
-        const is_error = 
-            _.get(messagePacket, "properties.userProperties.is_error");
+        const is_error = (
+            _.get(messagePacket, "properties.userProperties.is_error") ==
+            'true' // MQTT userProperties must be string
+        );
 
         let result = null;
         try{
@@ -144,8 +146,7 @@ class WardenclyffeRPCDispatch {
         return this;
     }
 
-    async call(namespace, functionName, parameter, options){
-
+    call(namespace, functionName, parameter, options){
         const remoteFullFunctionTopic = this.#getFullFunctionTopic(
             functionName,
             path.posix.join(GENERAL_REQUESTS_PREFIX, namespace)
@@ -158,16 +159,16 @@ class WardenclyffeRPCDispatch {
 
         // Records callback function and sets timeout.
         let retPromise = new Promise((resolve, reject)=>{
-            let pendingResult = new PendingResult(resolve, reject);
-            this.#pendingPromises.set(responseTopic, pendingResult, options);
+            let pendingResult = new PendingResult(resolve, reject, options);
+            this.#pendingPromises.set(responseTopic, pendingResult);
             pendingResult.once("finished", ()=>{
                 this.#pendingPromises.delete(responseTopic);
             });
         });
         
         // Publish call, but if failed, reject above promise immediately.
-        try{
-            await new Promise((resolve, reject)=>{
+        let publishTask = new Promise((resolve, reject)=>{
+            try{
                 this.#client.publish(
                     remoteFullFunctionTopic,
                     JSON.stringify(parameter),
@@ -182,11 +183,16 @@ class WardenclyffeRPCDispatch {
                         resolve();
                     }
                 );
-            });
-        } catch(e){
-            this.#pendingPromises.get(responseTopic).reject(e);
-            this.#pendingPromises.delete(responseTopic);
-        }
+            } catch(e){
+                reject(e);
+            }
+        });
+        publishTask.catch((e)=>{
+            let pendingResult = this.#pendingPromises.get(responseTopic);
+            if(pendingResult){
+                pendingResult.reject(e);
+            }
+        });
 
         return retPromise;  
     }

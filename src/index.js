@@ -42,6 +42,7 @@ class Wardenclyffe extends events.EventEmitter {
     connect(){
         this.#client = mqtt.connect(this.#mqtt_url, {
             protocolVersion: 5,
+            keepalive: 10,
         });
 
         return new Promise((resolve, _)=>{

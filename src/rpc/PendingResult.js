@@ -5,11 +5,13 @@ class PendingResult extends events.EventEmitter {
 
     #resolve;
     #reject;
+    #finished;
 
     constructor(resolve, reject, options){
         super();
         this.#resolve = resolve;
         this.#reject = reject;
+        this.#finished  = false;
 
         this.#setTimeout(options);
     }
@@ -22,13 +24,17 @@ class PendingResult extends events.EventEmitter {
     }
 
     resolve(){
+        if(this.#finished) return;
+        this.#finished = true;
+        this.#resolve.apply(this, [...arguments]);
         this.emit("finished");
-        return this.#resolve.apply(this, [...arguments]);
     }
     
     reject(){
+        if(this.#finished) return;
+        this.#finished = true;
+        this.#reject.apply(this, [...arguments]);
         this.emit("finished");
-        return this.#reject.apply(this, [...arguments]);
     }
 }
 
