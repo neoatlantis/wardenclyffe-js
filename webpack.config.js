@@ -55,12 +55,7 @@ module.exports = (env)=>{
         },
         externals: [
             nodeExternals({
-                allowlist: [
-                    "lodash",
-                    "mqtt",
-                    "events",
-                    "msgpackr",
-                ],
+                allowlist: Object.keys(package_json.dependencies),
             })
         ],
         resolve: {

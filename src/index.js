@@ -38,7 +38,8 @@ class Wardenclyffe extends events.EventEmitter {
         this.#mqtt_username = _.get(options, "username");
         this.#mqtt_password = _.get(options, "password");
 
-        console.log("Connecting: " + this.#mqtt_url);
+        if(_.isNil(this.#mqtt_url)) throw Error("url cannot be empty.");
+        
 
         this.#rpc = new WardenclyffeRPCDispatch({
             namespace,
@@ -52,8 +53,7 @@ class Wardenclyffe extends events.EventEmitter {
     }
 
     connect(){
-        let username = this.#mqtt_username;
-        let password  =this.#mqtt_password;
+        console.log("Connecting: " + this.#mqtt_url);
 
         this.#client = mqtt.connect(this.#mqtt_url, {
             username: _.isString(this.#mqtt_username) ? this.#mqtt_username : undefined,

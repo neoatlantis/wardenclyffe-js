@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "webpack",
-    "dist": "webpack --production"
+    "dist": "webpack --env production=1"
   },
   "repository": {
     "type": "git",
