@@ -18,12 +18,14 @@
   },
   "homepage": "https://github.com/neoatlantis/wardenclyffe-js#readme",
   "dependencies": {
+    "buffer": "^6.0.3",
     "events": "^3.3.0",
     "lodash": "^4.17.21",
     "mqtt": "^4.3.7",
     "msgpackr": "^1.9.5",
     "uuid": "^9.0.0",
-    "webpack": "^5.88.2"
+    "webpack": "^5.88.2",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "ifdef-loader": "^2.3.2",

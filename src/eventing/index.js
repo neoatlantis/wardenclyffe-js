@@ -18,7 +18,7 @@ class WardenclyffeEventingDispatch {
     bindEventsToClient(client){
         client.subscribe(
             path.posix.join(this.#channel_prefix_incoming, "#"),
-            { qos: 2 }
+            { qos: 1 }
         );
     }
 

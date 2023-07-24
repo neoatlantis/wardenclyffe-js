@@ -1,0 +1,7 @@
+module.exports = {
+    mqtt: {
+        host: "wss://...",
+        namespace: "",
+        
+    }
+}

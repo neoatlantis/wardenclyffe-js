@@ -1,8 +1,11 @@
+import WebSocket from "ws";
+
 import _ from "lodash";
 import events from "events";
 import mqtt from "mqtt";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { Buffer } from "buffer";
 
 import WardenclyffeRPCDispatch from "./rpc";
 import WardenclyffeEventingDispatch from "./eventing";
@@ -10,13 +13,15 @@ import WardenclyffeEventingDispatch from "./eventing";
 
 const symbolEventsBound = Symbol();
 
+global.WebSocket = WebSocket;
+
 
 
 class Wardenclyffe extends events.EventEmitter {
 
     #clientId;
     #client;
-    #mqtt_url;
+    #mqtt_url; #mqtt_username; #mqtt_password;
 
     #eventing;
     #rpc;
@@ -29,8 +34,11 @@ class Wardenclyffe extends events.EventEmitter {
             throw Error("Invalid namespace.");
         }
 
-        this.#mqtt_url = _.get(options, "url");
+        this.#mqtt_url      = _.get(options, "url");
+        this.#mqtt_username = _.get(options, "username");
+        this.#mqtt_password = _.get(options, "password");
 
+        console.log("Connecting: " + this.#mqtt_url);
 
         this.#rpc = new WardenclyffeRPCDispatch({
             namespace,
@@ -44,23 +52,24 @@ class Wardenclyffe extends events.EventEmitter {
     }
 
     connect(){
+        let username = this.#mqtt_username;
+        let password  =this.#mqtt_password;
+
         this.#client = mqtt.connect(this.#mqtt_url, {
+            username: _.isString(this.#mqtt_username) ? this.#mqtt_username : undefined,
+            password: this.#mqtt_password ? Buffer.from(this.#mqtt_password, "ascii") : undefined,
             protocolVersion: 5,
             keepalive: 5,
             clean: false, // set to false to receive QoS 1&2 while offline
             clientId: this.#clientId,
-        });
+        });        
 
-        this.#client.on("reconnect", ()=>{
-            console.log("Reconnecting...");
-        });
+        return new Promise((resolve, reject)=>{
+            this.#client.once("error", (err)=>{
+                reject(err);
+            });
 
-        this.#client.on("offline", ()=>{
-            console.log("Client offline.");
-        });
-
-        return new Promise((resolve, _)=>{
-            this.#client.on("connect", ()=>{
+            this.#client.once("connect", ()=>{
                 console.log("MQTT connnected.");
                 this.emit("connect");
                 this.#bindEvents(this.#client);
@@ -72,6 +81,18 @@ class Wardenclyffe extends events.EventEmitter {
     #bindEvents(client){
         // for a given instance of client, don't bind events repeatly
         if(_.get(client, symbolEventsBound) === true) return;
+
+        client.on("reconnect", ()=>{
+            console.log("Reconnecting...");
+        });
+
+        client.on("offline", ()=>{
+            console.log("Client offline.");
+        });
+
+        client.on("error", (err)=>{
+            console.error(err);
+        });
 
         this.#rpc.bindEventsToClient(client);
         this.#eventing.bindEventsToClient(client);

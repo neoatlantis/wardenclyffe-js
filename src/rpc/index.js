@@ -148,9 +148,10 @@ class WardenclyffeRPCDispatch {
 
     call(namespace, functionName, parameter, options){
         if(!this.#client || !this.#client.connected){
+            // necessary, as otherwise unnecessary calls on MQTT will result
+            // in burden and hinders reconnection schedule.
             throw Error("offline");
         }
-
 
         const remoteFullFunctionTopic = this.#getFullFunctionTopic(
             functionName,

@@ -1,8 +1,8 @@
+const config = require("./config-rpcclient.js");
 const { Wardenclyffe } = require("../dist/wardenclyffe.dev.js");
 
-const wardenclyffe = new Wardenclyffe({
-    url: "mqtt://test.mosquitto.org:1883"
-});
+
+const wardenclyffe = new Wardenclyffe(config.mqtt);
 
 
 
