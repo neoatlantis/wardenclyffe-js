@@ -102,8 +102,8 @@ class Wardenclyffe extends events.EventEmitter {
     }
 
     #onMessage(topic, messageBuffer, packet){
-        if(false === this.#rpc.onMessage(topic, messageBuffer, packet)){
-            this.#eventing.onMessage(topic, messageBuffer, packet);
+        if(false === this.#rpc.__onMessage(topic, messageBuffer, packet)){
+            this.#eventing.__onMessage(topic, messageBuffer, packet);
         }
     }
 

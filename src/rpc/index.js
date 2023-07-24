@@ -45,7 +45,7 @@ class WardenclyffeRPCDispatch {
         this.#client = client;
     }
 
-    onMessage(topic, messageBuffer, messagePacket){
+    __onMessage(topic, messageBuffer, messagePacket){
         if(_.startsWith(topic, this.#channel_prefix_requests)){
             this.#onRequest(topic, messageBuffer, messagePacket);
         } else if(_.startsWith(topic, this.#channel_prefix_responses)){
