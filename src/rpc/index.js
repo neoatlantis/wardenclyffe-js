@@ -147,6 +147,11 @@ class WardenclyffeRPCDispatch {
     }
 
     call(namespace, functionName, parameter, options){
+        if(!this.#client || !this.#client.connected){
+            throw Error("offline");
+        }
+
+
         const remoteFullFunctionTopic = this.#getFullFunctionTopic(
             functionName,
             path.posix.join(GENERAL_REQUESTS_PREFIX, namespace)
