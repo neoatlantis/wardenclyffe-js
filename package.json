@@ -2,7 +2,9 @@
   "name": "wardenclyffe-js",
   "version": "0.0.1",
   "description": "Use pub/sub network to facilate events and rpc across applications.",
-  "exports": "dist/wardenclyffe.dist.js",
+  "exports": {
+    "./": "dist/wardenclyffe.dist.js"
+  },
   "scripts": {
     "dev": "webpack",
     "dist": "webpack --env production=1"
