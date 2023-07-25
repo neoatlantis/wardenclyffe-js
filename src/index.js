@@ -9,6 +9,7 @@ import { Buffer } from "buffer";
 
 import WardenclyffeRPCDispatch from "./rpc";
 import WardenclyffeEventingDispatch from "./eventing";
+import Watchdog from "./watchdog";
 
 
 const symbolEventsBound = Symbol();
@@ -25,6 +26,7 @@ class Wardenclyffe extends events.EventEmitter {
 
     #eventing;
     #rpc;
+    #watchdog;
 
     constructor(options){
         super();
@@ -49,7 +51,18 @@ class Wardenclyffe extends events.EventEmitter {
             namespace,
         });
 
+
+        this.#watchdog = new Watchdog({
+            emission: _.get(options, "emitHeartbeat", false),
+        });
+
         this.#clientId = "Wardenclyffe-" + uuidv4();
+
+        this.#watchdog.on("bark", ()=>{
+            if(_.isFunction(options.onWatchdogTimeout)){
+                options.onWatchdogTimeout();
+            }
+        })
     }
 
     connect(){
@@ -96,6 +109,7 @@ class Wardenclyffe extends events.EventEmitter {
 
         this.#rpc.bindEventsToClient(client);
         this.#eventing.bindEventsToClient(client);
+        this.#watchdog.bindEventsToClient(client);
 
         client.on("message", (a,b,c)=>this.#onMessage(a,b,c));
         client[symbolEventsBound] = true;

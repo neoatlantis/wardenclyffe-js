@@ -2,9 +2,13 @@ const config = require("./config-rpcclient.js");
 const { Wardenclyffe } = require("../dist/wardenclyffe.dev.js");
 
 
-const wardenclyffe = new Wardenclyffe(config.mqtt);
+const options = config.mqtt;
+options.onWatchdogTimeout = function(){
+    console.log("---------------------------- WATCHDOG TIMED OUT! -----");
+}
+options.emitHeartbeat = true;
 
-
+const wardenclyffe = new Wardenclyffe(options);
 
 async function main(){
     await wardenclyffe.connect();
