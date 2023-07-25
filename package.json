@@ -1,6 +1,6 @@
 {
   "name": "wardenclyffe-js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Use pub/sub network to facilate events and rpc across applications.",
   "exports": "./dist/wardenclyffe.dist.js",
   "scripts": {
