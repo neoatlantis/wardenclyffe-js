@@ -86,7 +86,7 @@ class WardenclyffeRPCDispatch {
                 responseTopic,
                 pack(result),
                 {
-                    qos: 2,
+                    qos: 1, // no need for 2, as duplicated delivery is ok
                     properties: {
                         userProperties: {
                             is_error,
@@ -184,7 +184,7 @@ class WardenclyffeRPCDispatch {
                     remoteFullFunctionTopic,
                     pack(parameter),
                     {
-                        qos: 2,
+                        qos: _.get(options, "qos", 0),
                         properties: {
                             responseTopic
                         }
