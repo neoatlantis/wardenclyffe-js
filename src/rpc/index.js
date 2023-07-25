@@ -1,8 +1,11 @@
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
+import { pack, unpack } from "msgpackr";
 
 import PendingResult from "./PendingResult";
+
+const debug = require("debug")("wardenclyffe:rpc");
 
 
 const GENERAL_RESPONSES_PREFIX = "/wardenclyffe/res/";
@@ -59,18 +62,20 @@ class WardenclyffeRPCDispatch {
 
     #onRequest(topic, messageBuffer, messagePacket){
         if(!this.#registrations.has(topic)) return;
+        debug("Received request on topic:", topic);
         
         const handler = this.#registrations.get(topic);
         const responseTopic = _.get(messagePacket, "properties.responseTopic");
         if(!_.startsWith(responseTopic, GENERAL_RESPONSES_PREFIX)){
             // not worthy processing.
+            debug("Requested topic does not have a valid responseTopic.");
             return;
         }
 
         (async () => {
             let result = null, is_error = false;
             try{
-                let parameter = JSON.parse(messageBuffer.toString());
+                let parameter = unpack(messageBuffer);
                 result = await handler(parameter);
             } catch(e){
                 result = e.message;
@@ -79,7 +84,7 @@ class WardenclyffeRPCDispatch {
 
             this.#client.publish(
                 responseTopic,
-                JSON.stringify(result),
+                pack(result),
                 {
                     qos: 2,
                     properties: {
@@ -103,7 +108,7 @@ class WardenclyffeRPCDispatch {
 
         let result = null;
         try{
-            result = JSON.parse(messageBuffer.toString());
+            result = unpack(messageBuffer);
         } catch(e){
             return pendingResult.reject(Error("Deserialization error."));
         }
@@ -177,7 +182,7 @@ class WardenclyffeRPCDispatch {
             try{
                 this.#client.publish(
                     remoteFullFunctionTopic,
-                    JSON.stringify(parameter),
+                    pack(parameter),
                     {
                         qos: 2,
                         properties: {

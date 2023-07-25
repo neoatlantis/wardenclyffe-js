@@ -11,6 +11,7 @@ import WardenclyffeRPCDispatch from "./rpc";
 import WardenclyffeEventingDispatch from "./eventing";
 import Watchdog from "./watchdog";
 
+const debug = require("debug")("wardenclyffe");
 
 const symbolEventsBound = Symbol();
 
@@ -57,16 +58,20 @@ class Wardenclyffe extends events.EventEmitter {
         });
 
         this.#clientId = "Wardenclyffe-" + uuidv4();
+        debug("clientId=", this.#clientId);
 
         this.#watchdog.on("bark", ()=>{
+            debug("Watchdog timed out.");
+
             if(_.isFunction(options.onWatchdogTimeout)){
+                debug("Found watchdog callback function, invoke it.");
                 options.onWatchdogTimeout();
             }
         })
     }
 
     connect(){
-        console.log("Connecting: " + this.#mqtt_url);
+        debug("Connecting: " + this.#mqtt_url);
 
         this.#client = mqtt.connect(this.#mqtt_url, {
             username: _.isString(this.#mqtt_username) ? this.#mqtt_username : undefined,
@@ -83,7 +88,7 @@ class Wardenclyffe extends events.EventEmitter {
             });
 
             this.#client.once("connect", ()=>{
-                console.log("MQTT connnected.");
+                debug("MQTT connnected.");
                 this.emit("connect");
                 this.#bindEvents(this.#client);
                 resolve();
@@ -96,15 +101,15 @@ class Wardenclyffe extends events.EventEmitter {
         if(_.get(client, symbolEventsBound) === true) return;
 
         client.on("reconnect", ()=>{
-            console.log("Reconnecting...");
+            debug("Reconnecting...");
         });
 
         client.on("offline", ()=>{
-            console.log("Client offline.");
+            debug("Client offline.");
         });
 
         client.on("error", (err)=>{
-            console.error(err);
+            debug("MQTT client error", err);
         });
 
         this.#rpc.bindEventsToClient(client);
