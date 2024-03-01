@@ -2,6 +2,7 @@ import _ from "lodash";
 import path from "path";
 import events from "events"
 import { pack, unpack } from "msgpackr";
+import EventingChannel from "./EventingChannel";
 const debug = require("debug")("wardenclyffe:eventing");
 
 
@@ -11,28 +12,19 @@ class WardenclyffeEventingDispatch extends events.EventEmitter {
 
     #channel_prefix;
     #client;
+    #channels;
 
     constructor(options){
         super();
 
-        const namespace = _.get(options, "namespace");
-
-        this.#channel_prefix = GENERAL_EVENTING_PREFIX + namespace + "/";
+        this.#channel_prefix = GENERAL_EVENTING_PREFIX;
+        this.#channels = new Set();
     }
 
-    destructor(){
-        // close the eventing dispatch
-
-    }
 
     bindEventsToClient(client){
         if(!_.isNil(this.#client)) return;
-        
         this.#client = client;
-        client.subscribe(
-            path.posix.join(this.#channel_prefix, "#"),
-            { qos: 1 }
-        );
     }
 
     __onMessage(topic, messageBuffer, messagePacket){
@@ -47,7 +39,7 @@ class WardenclyffeEventingDispatch extends events.EventEmitter {
         }
     }
 
-    send(namespace, topic, payload, options){
+    __sendMessage(namespace, topic, payload, options){
         if(!this.#client || !this.#client.connected){
             // necessary, as otherwise unnecessary calls on MQTT will result
             // in burden and hinders reconnection schedule.
@@ -68,6 +60,28 @@ class WardenclyffeEventingDispatch extends events.EventEmitter {
             qos,
         });
     }
+    
+
+    join(channel_name){
+        if(!this.#channels.has(channel_name)){
+            this.#channels.add(channel_name);
+            this.#client.subscribe(
+                path.posix.join(this.#channel_prefix, channel_name, "#"),
+                { qos: 1 }
+            );
+        }
+        return new EventingChannel(this, channel_name);
+    }
+
+    leave(channel_name){
+        this.#channels.delete(channel_name);
+        return this.#client.unsubscribe(
+            path.posix.join(this.#channel_prefix, channel_name, "#"),
+            { qos: 1 }
+        );
+    }
+
+    
 }
 
 export default WardenclyffeEventingDispatch;

@@ -51,7 +51,7 @@ class Wardenclyffe extends events.EventEmitter {
             namespace,
         });
 
-        this.#eventing_channels = new Map();
+        this.#eventing = new WardenclyffeEventingDispatch();
 
 
         this.#watchdog = new Watchdog({
@@ -121,49 +121,19 @@ class Wardenclyffe extends events.EventEmitter {
 
         this.#rpc.bindEventsToClient(client);
         this.#watchdog.bindEventsToClient(client);
-
-        for(let k in this.#eventing_channels){
-            this.#eventing_channels[k].bindEventsToClient(client);
-        }
+        this.#eventing.bindEventsToClient(client);
     }
 
     #onMessage(topic, messageBuffer, packet){
         if(false !== this.#rpc.__onMessage(topic, messageBuffer, packet)){
             return;
         }
-        for(let k in this.#eventing_channels){
-            let r = this.#eventing_channels[k].__onMessage(
-                topic, messageBuffer, packet);
-            if(r === true) break;
-        }
+        this.#eventing.__onMessage(topic, messageBuffer, packet);
     }
 
     get rpc(){ return this.#rpc }
 
-
-    #eventing_channels;
-
-    eventing(channel_name){
-        if(!channel_name) channel_name = this.#local_namespace;
-        if(!this.#eventing_channels.has(channel_name)){
-            let new_channel = new WardenclyffeEventingDispatch({
-                namespace: channel_name,
-            });
-            this.#eventing_channels.set(channel_name, new_channel);
-        }
-        this.#bindEvents();
-        return this.#eventing_channels.get(channel_name);
-    }
-
-    uneventing(channel_name){
-        if(!channel_name) channel_name = this.#local_namespace;
-        if(!this.#eventing_channels.has(channel_name)) return;
-
-        let channel = this.#eventing_channels.get(channel_name);
-        channel.destructor();
-
-        this.#eventing_channels.delete(channel_name);
-    }
+    get eventing(){ return this.#eventing }
 
 }
 
