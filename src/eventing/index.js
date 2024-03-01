@@ -20,7 +20,14 @@ class WardenclyffeEventingDispatch extends events.EventEmitter {
         this.#channel_prefix = GENERAL_EVENTING_PREFIX + namespace + "/";
     }
 
+    destructor(){
+        // close the eventing dispatch
+
+    }
+
     bindEventsToClient(client){
+        if(!_.isNil(this.#client)) return;
+        
         this.#client = client;
         client.subscribe(
             path.posix.join(this.#channel_prefix, "#"),

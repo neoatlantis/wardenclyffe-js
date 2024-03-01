@@ -25,6 +25,8 @@ class Wardenclyffe extends events.EventEmitter {
     #client;
     #mqtt_url; #mqtt_username; #mqtt_password;
 
+    #local_namespace;
+
     #eventing;
     #rpc;
     #watchdog;
@@ -36,6 +38,7 @@ class Wardenclyffe extends events.EventEmitter {
         if(!_.isString(namespace || !/^[a-z]+$/.test(namespace))){
             throw Error("Invalid namespace.");
         }
+        this.#local_namespace = namespace;
 
         this.#mqtt_url      = _.get(options, "url");
         this.#mqtt_username = _.get(options, "username");
@@ -48,9 +51,7 @@ class Wardenclyffe extends events.EventEmitter {
             namespace,
         });
 
-        this.#eventing = new WardenclyffeEventingDispatch({
-            namespace,
-        });
+        this.#eventing_channels = new Map();
 
 
         this.#watchdog = new Watchdog({
@@ -90,44 +91,79 @@ class Wardenclyffe extends events.EventEmitter {
             this.#client.once("connect", ()=>{
                 debug("MQTT connnected.");
                 this.emit("connect");
-                this.#bindEvents(this.#client);
+                this.#bindEvents();
                 resolve();
             });
         });        
     }
 
-    #bindEvents(client){
+    #bindEvents(){
+        let client = this.#client;
+        if(_.isNil(client)) return;
+
         // for a given instance of client, don't bind events repeatly
-        if(_.get(client, symbolEventsBound) === true) return;
+        if(_.get(client, symbolEventsBound) !== true){
+            client.on("reconnect", ()=>{
+                debug("Reconnecting...");
+            });
 
-        client.on("reconnect", ()=>{
-            debug("Reconnecting...");
-        });
+            client.on("offline", ()=>{
+                debug("Client offline.");
+            });
 
-        client.on("offline", ()=>{
-            debug("Client offline.");
-        });
+            client.on("error", (err)=>{
+                debug("MQTT client error", err);
+            });
 
-        client.on("error", (err)=>{
-            debug("MQTT client error", err);
-        });
+            client.on("message", (a,b,c)=>this.#onMessage(a,b,c));
+            client[symbolEventsBound] = true;
+        }
 
         this.#rpc.bindEventsToClient(client);
-        this.#eventing.bindEventsToClient(client);
         this.#watchdog.bindEventsToClient(client);
 
-        client.on("message", (a,b,c)=>this.#onMessage(a,b,c));
-        client[symbolEventsBound] = true;
+        for(let k in this.#eventing_channels){
+            this.#eventing_channels[k].bindEventsToClient(client);
+        }
     }
 
     #onMessage(topic, messageBuffer, packet){
-        if(false === this.#rpc.__onMessage(topic, messageBuffer, packet)){
-            this.#eventing.__onMessage(topic, messageBuffer, packet);
+        if(false !== this.#rpc.__onMessage(topic, messageBuffer, packet)){
+            return;
+        }
+        for(let k in this.#eventing_channels){
+            let r = this.#eventing_channels[k].__onMessage(
+                topic, messageBuffer, packet);
+            if(r === true) break;
         }
     }
 
     get rpc(){ return this.#rpc }
-    get eventing(){ return this.#eventing }
+
+
+    #eventing_channels;
+
+    eventing(channel_name){
+        if(!channel_name) channel_name = this.#local_namespace;
+        if(!this.#eventing_channels.has(channel_name)){
+            let new_channel = new WardenclyffeEventingDispatch({
+                namespace: channel_name,
+            });
+            this.#eventing_channels.set(channel_name, new_channel);
+        }
+        this.#bindEvents();
+        return this.#eventing_channels.get(channel_name);
+    }
+
+    uneventing(channel_name){
+        if(!channel_name) channel_name = this.#local_namespace;
+        if(!this.#eventing_channels.has(channel_name)) return;
+
+        let channel = this.#eventing_channels.get(channel_name);
+        channel.destructor();
+
+        this.#eventing_channels.delete(channel_name);
+    }
 
 }
 

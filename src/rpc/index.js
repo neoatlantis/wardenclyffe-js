@@ -37,6 +37,8 @@ class WardenclyffeRPCDispatch {
     }
 
     bindEventsToClient(client){
+        if(!_.isNil(this.#client)) return;
+
         client.subscribe(
             path.posix.join(this.#channel_prefix_responses, "#"),
             { qos: 1 }

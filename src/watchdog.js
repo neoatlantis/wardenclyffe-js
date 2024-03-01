@@ -38,6 +38,8 @@ class Watchdog extends events.EventEmitter{
     }
 
     bindEventsToClient(client){
+        if(!_.isNil(this.#client)) return;
+        
         this.#client = client;
 
         this.#client.subscribe("/wardenclyffe/heartbeat");
